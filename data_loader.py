@@ -93,7 +93,7 @@ def merge_stock_data(sector_cons_df, global_spot_df, sector_gain=None):
         # Inner merge
         merged_df = pd.merge(sector_cons_df, global_spot_df, on='代码', how='inner')
         
-        target_cols = ['代码', '名称', '最新价', '涨跌幅', '总市值', '量比', '换手率']
+        target_cols = ['代码', '名称', '最新价', '涨跌幅', '总市值', '量比','振幅','换手率']
         available_cols = [c for c in target_cols if c in merged_df.columns]
         
         result = merged_df[available_cols].copy()

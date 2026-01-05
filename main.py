@@ -227,7 +227,7 @@ def main():
 
         with st.spinner("Analyzing Market..."):
             # 1. Get Ranking
-            k1 = data_loader.get_sector_ranking(top_n=top_n)
+            k1 = red.xiangt()
 
             if k1.empty:
                 st.error("无法获取板块排名，请稍后重试")
@@ -249,7 +249,7 @@ def main():
             with cols[i]:
                 st.metric(
                     label=row['板块名称'],
-                    value=f"{row['涨跌幅']:.2f}%",
+                    value=f"代码：{row['代码']}",
                     delta=None # Custom red color handled by CSS
                 )
 
@@ -262,7 +262,6 @@ def main():
 
         for i, tab in enumerate(k6):
             k7 = k1.iloc[i]['板块名称']
-            k8 = k1.iloc[i]['涨跌幅'] # Grab Sector Gain
 
             with tab:
                 # Data Processing: Merge On-Demand (Fast in-memory)
@@ -274,7 +273,7 @@ def main():
                     continue
 
                 # Inject Sector Gain
-                k10 = data_loader.merge_stock_data(k9, k2, sector_gain=k8)
+                k10 = data_loader.merge_stock_data(k9, k2, sector_gain=None)
 
                 k11 = logic.clean_data(k10)
                     # 2-Column Layout for "Dragons" vs "Laggards"
@@ -285,7 +284,7 @@ def main():
                     st.markdown("### 🐲龙头梯队")
                     st.markdown("<p class='text-subtle'>高标 / 涨停</p>", unsafe_allow_html=True)
 
-                    k13 = logic.filter_dragons(k11)
+                    k13 = logic.tidui(k11)
                     if not k13.empty:
                         dragons_disp = k13.copy()
                         dragons_disp['总市值'] = dragons_disp['总市值'] / 100_000_000
@@ -303,6 +302,49 @@ def main():
                         )
                     else:
                         st.caption("无")
+
+                        # --- Column 2: Details & Laggards ---
+                        with c2:
+                            st.markdown("### 🚀补涨挖掘")
+                            st.markdown("<p class='text-subtle'>低位 / 活跃 / 资金异动</p>", unsafe_allow_html=True)
+
+                            laggards = logic.tidui(k11, max_cap_billion=max_mkt_cap_yi)
+
+                            # Apply Validated Signals (Filtering)
+                            if not laggards.empty:
+                                laggards = logic.apply_signals(laggards, selected_signal_ids)
+
+                            if not laggards.empty:
+                                laggards_disp = laggards.copy()
+                                laggards_disp['总市值'] = laggards_disp['总市值'] / 100_000_000
+
+                                # Sort by Volume Ratio descending as specific signal sort is removed
+                                laggards_disp = laggards_disp.sort_values(by='量比', ascending=False)
+
+                                st.dataframe(
+                                    laggards_disp[['名称', '最新价', '涨跌幅', '量比', '换手率', '总市值']],
+                                    height=400,
+                                    use_container_width=True,
+                                    hide_index=True,
+                                    column_config={
+                                        "涨跌幅": st.column_config.NumberColumn(format="%.2f%%"),
+                                        "总市值": st.column_config.NumberColumn(label="市值", format="%.0f"),
+                                        "量比": st.column_config.NumberColumn(format="%.1f"),
+                                        "换手率": st.column_config.NumberColumn(label="换手", format="%.0f%%"),
+                                    }
+                                )
+
+                                # CSV Export (Minimal text link style)
+                                csv = laggards_disp.to_csv(index=False).encode('utf-8-sig')
+                                st.download_button(
+                                    label="下载 CSV",
+                                    data=csv,
+                                    file_name=f"{k3}_alpha.csv",
+                                    mime='text/csv',
+                                    key=f"dl_{i}"
+                                )
+                            else:
+                                st.info("暂无符合条件标的")
 
 
 if __name__ == "__main__":

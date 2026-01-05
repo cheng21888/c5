@@ -11,7 +11,7 @@ def clean_data(df):
     # Copy to avoid SettingWithCopyWarning
     df = df.copy()
 
-    numeric_cols = ['最新价', '涨跌幅', '总市值', '量比', '换手率']
+    numeric_cols = ['最新价', '涨跌幅', '总市值', '量比', '换手率','振幅']
     
     for col in numeric_cols:
         if col in df.columns:
@@ -70,13 +70,12 @@ def filter_dragons(df):
 def tidui(df):
     if df.empty:
         return df
-    mask_gain = df['振幅'] >= 6
+    mask_gain = df['振幅'] >= 8
     mask_turnover = df['换手率'] > 10.0
 
     laggards = df[mask_gain  & mask_turnover].copy()
 
     return laggards
-
 
 
 def filter_laggards(df, max_cap_billion=200):
